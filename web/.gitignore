@@ -1,0 +1,13 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# bun
+bun.lockb
+
+# wrangler
+.wrangler/
+.dev.vars

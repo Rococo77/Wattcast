@@ -1,0 +1,63 @@
+---
+// Renders the walk-forward bake-off table from model/evaluation.json.
+interface Stat { mean: number; std: number; }
+interface ModelRow { mae: Stat; mape: Stat; fit_seconds?: number; }
+interface Evaluation {
+  n_splits: number;
+  models: Record<string, ModelRow>;
+  references: Record<string, ModelRow>;
+  best_model: string;
+}
+const { evaluation } = Astro.props as { evaluation: Evaluation };
+
+const LABELS: Record<string, string> = {
+  xgboost: "XGBoost",
+  prophet: "Prophet",
+  baseline_naive: "Baseline naïve (H-168)",
+  rte_official: "Prévision RTE (J-1)",
+};
+const fmt = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+
+const rows = [
+  ...Object.entries(evaluation.models).map(([key, r]) => ({
+    key, label: LABELS[key] ?? key, ...r,
+    isBest: key === evaluation.best_model, reference: false,
+  })),
+  ...Object.entries(evaluation.references).map(([key, r]) => ({
+    key, label: LABELS[key] ?? key, ...r, isBest: false, reference: true,
+  })),
+];
+---
+
+<div class="figure">
+  <h2>Quel modèle prévoit le mieux&nbsp;?</h2>
+  <p class="lede">
+    Bake-off en validation walk-forward ({evaluation.n_splits} folds à fenêtre
+    glissante) — on entraîne sur le passé, on teste sur la période suivante,
+    jamais de mélange aléatoire. MAE moyenne ± écart-type sur les folds. Les deux
+    modèles entraînés sont situés par rapport à deux références non entraînées.
+  </p>
+  <table class="compare">
+    <thead>
+      <tr>
+        <th>Modèle</th>
+        <th>MAE (MW)</th>
+        <th>MAPE</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr class={`${r.isBest ? "best" : ""} ${r.reference ? "reference" : ""}`}>
+          <td>
+            {r.label}
+            {r.isBest && <span class="tag">meilleur</span>}
+          </td>
+          <td>{fmt(r.mae.mean)} <span class="std">± {fmt(r.mae.std)}</span></td>
+          <td>{r.mape.mean.toFixed(2)} %</td>
+          <td>{r.reference ? "référence" : "entraîné"}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

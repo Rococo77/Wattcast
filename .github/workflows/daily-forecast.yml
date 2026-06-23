@@ -1,0 +1,61 @@
+name: Daily forecast
+
+# Refreshes the J+1 forecast every morning: pulls the latest realised
+# consumption + temperature forecast, retrains, evaluates, predicts, rebuilds
+# the static dashboard and deploys it to Cloudflare.
+on:
+  schedule:
+    - cron: "30 5 * * *" # 05:30 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-forecast
+  cancel-in-progress: false
+
+jobs:
+  forecast:
+    name: Ingest → train → predict → deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Mapped here so the deploy step can gate on them via the `env` context;
+    # the `secrets` context is not allowed inside a step-level `if`.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      # --strict: fail loudly on a data-source error rather than silently
+      # deploying the synthetic fallback to production.
+      - name: Ingest real data
+        run: python -m ml.ingest --strict
+      - name: Build features
+        run: python -m ml.features
+      - name: Train model
+        run: python -m ml.train
+      - name: Walk-forward bake-off (XGBoost vs Prophet)
+        run: python -m ml.evaluate
+      - name: Generate J+1 forecast
+        run: python -m ml.predict
+
+      - uses: oven-sh/setup-bun@v2
+      - name: Install web dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+      - name: Build static dashboard
+        working-directory: web
+        run: bun run build
+
+      - name: Deploy to Cloudflare
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
+        working-directory: web
+        run: bunx wrangler deploy

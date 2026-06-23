@@ -1,0 +1,84 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Stat from "../components/Stat.astro";
+import ForecastChart from "../components/ForecastChart.astro";
+import ModelComparison from "../components/ModelComparison.astro";
+
+// Data is produced by the ML pipeline (ml/predict.py) and written into
+// public/data before `astro build`. Imported at build time → fully static page.
+import predictions from "../../public/data/predictions.json";
+import actuals from "../../public/data/actuals.json";
+import metrics from "../../public/data/metrics.json";
+import evaluation from "../../public/data/evaluation.json";
+
+// Merge predicted + actual on timestamp for the chart.
+const actualMap = new Map(actuals.points.map((p: any) => [p.datetime, p.actual]));
+const series = predictions.points.map((p: any) => ({
+  t: p.datetime,
+  predicted: p.predicted,
+  actual: actualMap.get(p.datetime) ?? null,
+  temperature: p.temperature,
+  isForecast: p.is_forecast,
+}));
+
+const m = metrics.metrics;
+const improvement = metrics.improvement_vs_baseline_pct;
+const rte = metrics.references?.rte_official;
+const fmt = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+const generated = new Date(predictions.generated_at).toLocaleDateString("fr-FR", {
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+});
+---
+
+<Layout>
+  <header class="masthead">
+    <p class="eyebrow">Prévision de charge · réseau électrique français</p>
+    <h1 class="wordmark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="13,2 4,14 11,14 10,22 19,9 12,9" fill="currentColor"/></svg>
+      WattCast
+    </h1>
+    <p class="dek">
+      Combien la France consommera-t-elle d'électricité demain&nbsp;? Un modèle
+      <strong>{metrics.model}</strong> prédit la courbe de charge nationale heure
+      par heure pour les 24 prochaines heures, recalculée chaque jour et
+      confrontée à la réalité.
+    </p>
+    <p class="byline">
+      Mis à jour le {generated} · validation temporelle stricte · sources RTE &amp; Open-Meteo
+    </p>
+  </header>
+
+  <section class="statline">
+    <Stat k="MAE — test" value={fmt(m.mae)} unit="MW" note="erreur absolue moyenne" />
+    <Stat k="MAPE — test" value={m.mape.toFixed(2)} unit="%" note="erreur relative moyenne" />
+    <Stat k="Gain vs baseline" value={`−${improvement}`} unit="%" emphasis note="vs naïf H-168" />
+    <Stat
+      k="Référence RTE J-1"
+      value={rte ? fmt(rte.mae) : "—"}
+      unit={rte ? "MW" : ""}
+      note="prévision officielle, pour situer"
+    />
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Figure 1</p>
+    <ForecastChart series={series} now={predictions.now} />
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">Figure 2</p>
+    <ModelComparison evaluation={evaluation} />
+  </section>
+
+  <footer class="foot">
+    Méthode — consommation réalisée (éCO2mix, RTE via
+    <a href="https://opendata.reseaux-energies.fr/">ODRÉ</a>) et température
+    pondérée par population (<a href="https://open-meteo.com/">Open-Meteo</a>).
+    Features calendaires, jours fériés, lags H-24/H-168 et réponse en U à la
+    température. Pipeline ML (XGBoost / Prophet) entraîné hors-ligne par GitHub
+    Actions, dashboard Astro statique servi par Cloudflare. Code MIT —
+    <a href="https://github.com/rococo77/wattcast">github.com/rococo77/wattcast</a>.
+  </footer>
+</Layout>

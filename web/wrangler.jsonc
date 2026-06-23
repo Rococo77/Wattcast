@@ -1,0 +1,9 @@
+{
+  // Purely static site → no Worker code, no `main`, no ASSETS binding.
+  // `bunx wrangler deploy` uploads ./dist as Cloudflare Workers Static Assets.
+  "name": "wattcast",
+  "compatibility_date": "2026-06-23",
+  "assets": {
+    "directory": "./dist"
+  }
+}

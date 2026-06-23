@@ -1,0 +1,65 @@
+{
+  "n_splits": 5,
+  "models": {
+    "xgboost": {
+      "mae": {
+        "mean": 885.39,
+        "std": 107.39
+      },
+      "mape": {
+        "mean": 1.78,
+        "std": 0.205
+      },
+      "fit_seconds": 0.6,
+      "fold_mae": [
+        1092.1,
+        885.9,
+        835.9,
+        812.1,
+        801.0
+      ]
+    },
+    "prophet": {
+      "mae": {
+        "mean": 1448.65,
+        "std": 821.86
+      },
+      "mape": {
+        "mean": 2.945,
+        "std": 1.64
+      },
+      "fit_seconds": 2.0,
+      "fold_mae": [
+        3092.2,
+        1026.4,
+        1061.7,
+        1023.8,
+        1039.1
+      ]
+    }
+  },
+  "references": {
+    "baseline_naive": {
+      "mae": {
+        "mean": 3210.19,
+        "std": 292.15
+      },
+      "mape": {
+        "mean": 6.198,
+        "std": 0.488
+      }
+    },
+    "rte_official": {
+      "mae": {
+        "mean": 464.33,
+        "std": 4.31
+      },
+      "mape": {
+        "mean": 0.936,
+        "std": 0.017
+      }
+    }
+  },
+  "best_model": "xgboost",
+  "improvement_vs_baseline_pct": 72.4
+}

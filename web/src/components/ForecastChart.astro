@@ -1,0 +1,148 @@
+---
+// Interactive load curve: realised vs predicted, with the J+1 horizon dashed.
+// Data is baked into a JSON island at build time; Chart.js renders client-side.
+interface Point {
+  t: string;
+  predicted: number;
+  actual: number | null;
+  temperature: number;
+  isForecast: boolean;
+}
+const { series, now } = Astro.props as { series: Point[]; now: string };
+const lastActual = new Date(now).toLocaleString("fr-FR", {
+  weekday: "long",
+  day: "2-digit",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+---
+
+<div class="figure">
+  <h2>Consommation nationale, prédit contre réel</h2>
+  <p class="lede">
+    Sept jours d'historique réalisé, prolongés par la prévision à 24&nbsp;heures
+    (trait pointillé). Dernière mesure&nbsp;: {lastActual}.
+  </p>
+  <div class="chart-wrap">
+    <canvas id="forecast-chart"></canvas>
+  </div>
+  <div class="legend">
+    <span><i class="swatch actual"></i> Réel</span>
+    <span><i class="swatch pred"></i> Prédit (historique)</span>
+    <span><i class="swatch dash"></i> Prévision J+1</span>
+    <span><i class="swatch temp"></i> Température (°C)</span>
+  </div>
+</div>
+
+<script type="application/json" id="chart-data" set:html={JSON.stringify(series)}></script>
+
+<script>
+  import Chart from "chart.js/auto";
+
+  const el = document.getElementById("chart-data");
+  const canvas = document.getElementById("forecast-chart");
+  if (el && canvas) {
+    const series = JSON.parse(el.textContent || "[]");
+    const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+    const labels = series.map((p) =>
+      new Date(p.t).toLocaleString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
+
+    Chart.defaults.font.family =
+      "ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace";
+    Chart.defaults.font.size = 10;
+
+    new Chart(canvas, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Réel (MW)",
+            data: series.map((p) => p.actual),
+            borderColor: css("--actual"),
+            backgroundColor: "transparent",
+            borderWidth: 2,
+            pointRadius: 0,
+            spanGaps: false,
+            tension: 0.25,
+            yAxisID: "y",
+          },
+          {
+            label: "Prédit (MW)",
+            data: series.map((p) => p.predicted),
+            borderColor: css("--predicted"),
+            backgroundColor: "transparent",
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.25,
+            yAxisID: "y",
+            segment: {
+              borderDash: (ctx) =>
+                series[ctx.p1DataIndex] && series[ctx.p1DataIndex].isForecast ? [5, 4] : undefined,
+            },
+          },
+          {
+            label: "Température (°C)",
+            data: series.map((p) => p.temperature),
+            borderColor: css("--temp"),
+            backgroundColor: "transparent",
+            borderWidth: 1.25,
+            borderDash: [1, 3],
+            pointRadius: 0,
+            tension: 0.3,
+            yAxisID: "y1",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: css("--ink"),
+            padding: 10,
+            cornerRadius: 2,
+            titleFont: { family: css("--sans") || "system-ui" },
+            callbacks: {
+              afterTitle: (items) =>
+                series[items[0].dataIndex] && series[items[0].dataIndex].isForecast
+                  ? "▶ prévision J+1"
+                  : "",
+            },
+          },
+        },
+        scales: {
+          y: {
+            title: { display: true, text: "MW", color: css("--ink-soft") },
+            grid: { color: css("--grid") },
+            border: { color: css("--rule") },
+            ticks: { color: css("--ink-soft") },
+          },
+          y1: {
+            position: "right",
+            title: { display: true, text: "°C", color: css("--ink-soft") },
+            grid: { drawOnChartArea: false },
+            border: { color: css("--rule") },
+            ticks: { color: css("--ink-soft") },
+          },
+          x: {
+            grid: { display: false },
+            border: { color: css("--rule") },
+            ticks: { color: css("--ink-soft"), maxTicksLimit: 10, autoSkip: true, maxRotation: 0 },
+          },
+        },
+      },
+    });
+  }
+</script>

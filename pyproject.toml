@@ -1,0 +1,20 @@
+# Tooling config for the WattCast ML pipeline (lint + tests).
+# The package is run as modules (`python -m ml.<step>`); no install required.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["web", "data", "model"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4"]
+ignore = ["E501"]  # long descriptive print/f-strings are fine here
+
+[tool.pytest.ini_options]
+testpaths = ["ml/tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+]
