@@ -1,0 +1,4 @@
+# WattCast — development dependencies (linting + tests)
+-r requirements.txt
+pytest>=8.0
+ruff>=0.6

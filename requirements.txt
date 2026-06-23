@@ -1,0 +1,10 @@
+# WattCast — runtime dependencies for the ML pipeline
+pandas>=2.2,<3
+numpy>=1.26,<3
+xgboost>=2.1,<4
+scikit-learn>=1.4,<2
+prophet>=1.1          # alternative model, benchmarked against XGBoost
+holidays>=0.50
+pyarrow>=15
+requests>=2.31
+joblib>=1.3
