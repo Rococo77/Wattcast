@@ -1,0 +1,32 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = "WattCast — Prévision de la consommation électrique française",
+  description = "Prévision à 24 h de la consommation électrique nationale française, mise à jour chaque jour et comparée à la réalité. Modèle XGBoost vs Prophet.",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><polygon points='13,2 4,14 11,14 10,22 19,9 12,9' fill='%23c0531b'/></svg>"
+    />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main class="wrap">
+      <slot />
+    </main>
+  </body>
+</html>

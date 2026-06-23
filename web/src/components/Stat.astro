@@ -1,0 +1,19 @@
+---
+// A single figure in the masthead stat strip.
+interface Props {
+  k: string;
+  value: string | number;
+  unit?: string;
+  note?: string;
+  emphasis?: boolean;
+}
+const { k, value, unit, note, emphasis = false } = Astro.props;
+---
+
+<div class="stat">
+  <div class="k">{k}</div>
+  <div class={`v ${emphasis ? "up" : ""}`}>
+    {value}{unit && <span class="u">{unit}</span>}
+  </div>
+  {note && <div class="note">{note}</div>}
+</div>
